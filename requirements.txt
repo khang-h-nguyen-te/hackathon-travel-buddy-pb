@@ -1,4 +1,6 @@
-llama-index==0.12.19
+llama-index-core
+llama-index-llms-openai
+llama-index-agent-openai
 supabase
 fastapi==0.115.8
 openai==1.59.3
