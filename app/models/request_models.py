@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator, model_validator
 from typing import Any, Dict, Optional, Union, List
 import ast
 
@@ -29,15 +29,22 @@ class TravelPackage(BaseModel):
     # Note: Vector fields are not included in the response model
     # as they are used internally for search only
 
-    @validator('highlights', pre=True)
-    def parse_highlights(cls, v):
+    @field_validator('highlights', mode='before')
+    @classmethod
+    def parse_highlights(cls, v: Any) -> Any:
         if isinstance(v, str):
             try:
                 # Handle string representation of list
-                return ast.literal_eval(v)
+                parsed = ast.literal_eval(v)
+                if isinstance(parsed, list):
+                    return parsed
+                # If literal_eval doesn't return a list, fallback to splitting
+                return [x.strip() for x in v.strip('[]').split(',') if x.strip()]
             except (ValueError, SyntaxError):
-                # If the string is not a valid Python literal, split by comma
-                return [x.strip() for x in v.strip('[]').split(',')]
+                 # If the string is not a valid Python literal, split by comma
+                 # Ensure splitting non-empty strings after stripping
+                 return [x.strip() for x in v.strip('[]').split(',') if x.strip()]
+        # If it's already a list or other type, pass it through
         return v
 
 
@@ -53,11 +60,19 @@ class TravelPackageSearchRequest(BaseModel):
     notes_input: str = ""
     match_count: Optional[int] = 10
 
-    @validator('*', pre=True)
-    def empty_string_to_none(cls, v, field):
-        if field.name == 'match_count':
-            return v
-        return v if v is not None else ""
+    @model_validator(mode='before')
+    @classmethod
+    def empty_string_to_none(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            for key, value in data.items():
+                # Apply logic only to string fields, excluding match_count
+                if key != 'match_count' and key in cls.model_fields and value is None:
+                     # Check if the field is expected to be a string (or Optional[str])
+                     # This check might need refinement based on actual field types if they vary more
+                    annotation = cls.model_fields[key].annotation
+                    if annotation == str or annotation == Optional[str]:
+                        data[key] = ""
+        return data
 
 
 class TravelPackageSearchResponse(BaseModel):
