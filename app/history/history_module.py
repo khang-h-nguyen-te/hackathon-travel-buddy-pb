@@ -17,7 +17,7 @@ class HistoryModule:
         from llama_index.core.memory.chat_memory_buffer import ChatMemoryBuffer
         
         # Use provided token limit or get from config
-        self.token_limit = token_limit or config.memory_token_limit
+        self.token_limit = token_limit or config.history_token_limit
         self.memory = ChatMemoryBuffer.from_defaults(token_limit=self.token_limit)
         
         # Initialize an internal list to store conversation history

@@ -6,6 +6,8 @@ from pydantic import BaseModel
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import logging
+import json
+import litellm
 
 # Import from our application structure
 from app.agent.agent_rag import AgentRag
@@ -223,23 +225,198 @@ def process_travel_search(
     # Simply return the list of dictionaries
     return packages
 
-# Define a POST endpoint to search travel packages
+# --- Helper function for LLM Reranking (New) ---
+async def process_llm_rerank(
+    search_request: TravelPackageSearchRequest,
+    candidate_packages: List[Dict]
+) -> List[TravelPackage]:
+    """
+    Uses an LLM to re-rank/select candidate packages based on user criteria.
+
+    Args:
+        search_request: The original search request payload.
+        candidate_packages: List of package dictionaries from initial search.
+
+    Returns:
+        List of validated TravelPackage objects selected by the LLM.
+    """
+    logger.info(f"Starting LLM re-ranking for {len(candidate_packages)} candidates.")
+
+    if not candidate_packages:
+        logger.warning("No candidate packages provided for LLM reranking.")
+        return []
+        
+    if not config.openrouter_api_key:
+        logger.error("OPENROUTER_API_KEY is not configured. Skipping LLM reranking.")
+        # Fallback: Return original candidates as TravelPackage objects
+        validated_packages = []
+        for pkg_dict in candidate_packages:
+            try:
+                validated_packages.append(TravelPackage.model_validate(pkg_dict))
+            except Exception as e:
+                logger.error(f"Failed to validate candidate package: {pkg_dict.get('id', 'N/A')}. Error: {e}")
+        return validated_packages
+
+
+    # Prepare user criteria string
+    criteria = f"""
+    User Search Criteria:
+    - Location: {search_request.location_input or 'Any'}
+    - Duration: {search_request.duration_input or 'Any'}
+    - Budget: {search_request.budget_input or 'Any'}
+    - Transportation: {search_request.transportation_input or 'Not specified'}
+    - Accommodation: {search_request.accommodation_input or 'Not specified'}
+    - Food: {search_request.food_input or 'Not specified'}
+    - Activities: {search_request.activities_input or 'Any'}
+    - Notes: {search_request.notes_input or 'None'}
+    """
+
+    # Prepare candidate packages JSON string
+    try:
+        candidates_json_str = json.dumps(candidate_packages, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to serialize candidate packages to JSON: {e}")
+        return [] # Cannot proceed without candidates
+
+    # Construct the prompt for the LLM
+    prompt_messages = [
+        {
+            "role": "system",
+            "content": f"""
+You are an expert travel agent assistant. Your task is to rerank the travel packages for a user based on their preferences and a list of candidate packages found.
+
+**Instructions:**
+1.  Review the User Search Criteria provided.
+2.  Examine the list of Candidate Travel Packages provided below. Each package is a JSON object.
+3.  Rerank the packages from the provided list that match the user's criteria. Consider all aspects like location (most important), duration, budget hints (interpret budget strings like 'around $500', 'budget friendly'), activities, etc.
+4.  **Do not invent new packages or modify details** of the existing packages (like price, duration, description, id etc.). Only select from the candidates.
+5.  Return your selection as a **single JSON array** containing the complete JSON objects of the selected packages. The JSON array should be the *only* content in your response.
+6.  If none of the candidate packages are a good match for the criteria, return an empty JSON array `[]`.
+
+Example output format (should be a JSON array of package objects):
+```json
+[
+  {{
+    "id": "pkg_123",
+    "title": "Amazing Beach Trip",
+    "provider_id": "prov_abc",
+    "location_id": "loc_xyz",
+    "price": 499.99,
+    "duration_days": 5,
+    "highlights": ["Swimming", "Sunbathing"],
+    "description": "Relax on the beautiful beaches...",
+    "image_url": "http://example.com/image.jpg"
+  }},
+  {{
+    "id": "pkg_456",
+    // ... other fields ...
+  }}
+]
+```
+"""
+        },
+        {
+            "role": "user",
+            "content": f"""
+{criteria}
+
+Candidate Travel Packages:
+```json
+{candidates_json_str}
+```
+
+Based on the User Search Criteria, please select some high matching packages from the list above and return them as a JSON array. Remember to only include packages from the provided list and maintain their original details.
+"""
+        }
+    ]
+
+    llm_selected_packages = []
+    try:
+        logger.debug("Calling LLM for reranking...")
+        # Set API key for litellm (it reads environment variables, but setting explicitly can be clearer)
+        litellm.api_key = config.openrouter_api_key 
+        # Optionally set base URL if needed, but often inferred for OpenRouter
+        # litellm.api_base = "https://openrouter.ai/api/v1" 
+
+        response = await litellm.acompletion( # Use async completion
+            model="openrouter/meta-llama/llama-3.3-70b-instruct", # Using Llama 3 70b via OpenRouter
+            messages=prompt_messages,
+            response_format={"type": "json_object"}, # Request JSON output
+            temperature=0.5 # Lower temperature for more deterministic selection
+        )
+
+        logger.debug("LLM response received.")
+        llm_output_content = response.choices[0].message.content
+
+        if not llm_output_content:
+            logger.warning("LLM returned empty content.")
+            return []
+
+        # Parse the JSON output from the LLM
+        try:
+            parsed_llm_output = json.loads(llm_output_content)
+            if not isinstance(parsed_llm_output, list):
+                 # Sometimes the LLM might wrap the list in a top-level key, try to find it
+                 if isinstance(parsed_llm_output, dict) and len(parsed_llm_output) == 1:
+                     key = list(parsed_llm_output.keys())[0]
+                     if isinstance(parsed_llm_output[key], list):
+                         parsed_llm_output = parsed_llm_output[key]
+                         logger.warning("LLM output was nested in a dict, extracted list.")
+                     else:
+                        raise ValueError("LLM JSON output was not a list or a dict containing a single list.")
+                 else:
+                    raise ValueError("LLM JSON output was not a list.")
+
+            # Validate each object in the list against the TravelPackage model
+            validated_packages = []
+            original_ids = {pkg['id'] for pkg in candidate_packages}
+
+            for item in parsed_llm_output:
+                if not isinstance(item, dict):
+                    logger.warning(f"LLM returned a non-dictionary item in the list: {item}")
+                    continue
+                
+                item_id = item.get('id')
+                if not item_id:
+                     logger.warning(f"LLM returned a package without an ID: {item}")
+                     continue
+                
+                # Crucially, check if the ID was in the original candidate list
+                if item_id not in original_ids:
+                    logger.warning(f"LLM returned a package ID ('{item_id}') that was not in the original candidates. Skipping.")
+                    continue
+
+                try:
+                    # Validate the structure and types using the Pydantic model
+                    validated_pkg = TravelPackage.model_validate(item)
+                    validated_packages.append(validated_pkg)
+                except Exception as pydantic_error:
+                    logger.warning(f"LLM returned package (ID: {item_id}) that failed Pydantic validation: {pydantic_error}. Item: {item}")
+
+            llm_selected_packages = validated_packages
+            logger.info(f"LLM successfully selected {len(llm_selected_packages)} packages after validation.")
+
+        except json.JSONDecodeError as json_error:
+            logger.error(f"Failed to decode JSON response from LLM: {json_error}")
+            logger.error(f"LLM Raw Output: {llm_output_content}")
+        except ValueError as val_error:
+             logger.error(f"LLM JSON output validation error: {val_error}")
+             logger.error(f"LLM Raw Output: {llm_output_content}")
+
+
+    except Exception as e:
+        logger.error(f"Error during LLM reranking call: {str(e)}", exc_info=True)
+        # Optionally, could fallback to returning original candidates here too
+
+    return llm_selected_packages
+
+# --- Original Search Endpoint ---
 @app.post("/search-travel-packages", response_model=TravelPackageSearchResponse)
 async def search_travel_packages(
     authorization: str,
     payload: TravelPackageSearchRequest
 ):
-    """
-    Search for travel packages based on user preferences.
-    
-    Args:
-        payload: The travel package search request containing user preferences
-        request: The FastAPI request object
-    
-    Returns:
-        List of travel packages matching the search criteria
-    """
-    # Get the Authorization header from the request
+    # ... (existing code for validation and setup) ...
     auth_header = authorization
     
     if not auth_header or not auth_header.startswith("Bearer "):
@@ -247,64 +424,137 @@ async def search_travel_packages(
             status_code=401,
             detail="Valid Authorization header with Bearer token is required"
         )
-    
-    # Extract the token from the Authorization header
-    # Remove 'Bearer ' prefix and any extra spaces
-    token = auth_header.replace("Bearer ", "").strip()
-    
-    # Initialize vector store and embedding service
-    vector_store = SupabaseVectorStore(
-        url=config.supabase_url,
-        key=config.supabase_anon_key,
-        auth=token  # Pass the clean token without 'Bearer ' prefix
-    )
-    embedding_service = EmbeddingService()
-    
-    # Offload the blocking search to a thread pool
+        
+    # Initialize services
+    try:
+        embedding_service = EmbeddingService()
+        vector_store = SupabaseVectorStore(
+            url=config.supabase_url,
+            key=config.supabase_anon_key,
+            auth=auth_header.replace("Bearer ", "") # Use service key for backend search
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize search services: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to initialize search services")
+
+    logger.debug(f"Processing search request: {payload.dict()}")
+
+    # Offload the blocking search call to a thread pool
     loop = asyncio.get_event_loop()
-    packages = await loop.run_in_executor(
-        executor,
-        process_travel_search,
-        payload.location_input,
-        payload.duration_input,
-        payload.budget_input,
-        payload.transportation_input,
-        payload.accommodation_input,
-        payload.food_input,
-        payload.activities_input,
-        payload.notes_input,
-        payload.match_count,
-        vector_store,
-        embedding_service
+    try:
+        package_dicts = await loop.run_in_executor(
+            executor,
+            process_travel_search, # Assuming process_travel_search returns List[Dict]
+            payload.location_input,
+            payload.duration_input,
+            payload.budget_input,
+            payload.transportation_input,
+            payload.accommodation_input,
+            payload.food_input,
+            payload.activities_input,
+            payload.notes_input,
+            payload.match_count,
+            vector_store,
+            embedding_service
+        )
+        
+        # Validate results into Pydantic models
+        validated_packages = []
+        for pkg_dict in package_dicts:
+            try:
+                validated_packages.append(TravelPackage.model_validate(pkg_dict))
+            except Exception as e:
+                logger.error(f"Failed to validate search result package: {pkg_dict.get('id', 'N/A')}. Error: {e}")
+                # Decide whether to skip or raise error
+
+    except Exception as e:
+        logger.error(f"Error during travel package search: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to process travel package search")
+
+    response = TravelPackageSearchResponse(
+        packages=validated_packages,
+        total_count=len(validated_packages)
     )
-    
+    return response
 
-    valid_packages = []
-    # Get required field names (works for Pydantic v1 and v2)
-    required_keys = {name for name, field in TravelPackage.__fields__.items() if field.is_required}
-    # For Pydantic v2 specifically, you could use:
-    # required_keys = {name for name, field_info in TravelPackage.model_fields.items() if field_info.is_required()}
-    # We'll use the __fields__ approach for broader compatibility for now.
+# --- New Search Endpoint with LLM Reranking ---
+@app.post("/search-travel-packages-v2", response_model=TravelPackageSearchResponse)
+async def search_travel_packages_v2(
+    authorization: str,
+    payload: TravelPackageSearchRequest
+):
+    """
+    Search for travel packages, then use an LLM to re-rank/select results.
+    """
+    # --- Step 1: Initial Search (same as original endpoint) ---
+    auth_header = authorization
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Valid Authorization header with Bearer token is required"
+        )
+        
+    try:
+        embedding_service = EmbeddingService()
+        vector_store = SupabaseVectorStore(
+            url=config.supabase_url,
+            key=config.supabase_anon_key,
+            auth=auth_header.replace("Bearer ", "")
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize search services (v2): {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to initialize search services")
 
-    for pkg in packages:
-        # Remove the combined_score if it exists
-        pkg.pop('combined_score', None)
+    logger.debug(f"Processing v2 search request: {payload.dict()}")
+    loop = asyncio.get_event_loop()
+    try:
+        # Get initial candidates as dictionaries
+        initial_package_dicts = await loop.run_in_executor(
+            executor,
+            process_travel_search,
+            payload.location_input,
+            payload.duration_input,
+            payload.budget_input,
+            payload.transportation_input,
+            payload.accommodation_input,
+            payload.food_input,
+            payload.activities_input,
+            payload.notes_input,
+            payload.match_count, # Fetch initial candidates
+            vector_store,
+            embedding_service
+        )
+        logger.info(f"Initial search found {len(initial_package_dicts)} candidates.")
 
-        # Check if all required keys are present
-        if all(key in pkg for key in required_keys):
-            # Optional: Add further checks here if needed, e.g., ensure values are not None
-            valid_packages.append(pkg)
-        else:
-            # Log a warning or handle the incomplete package data
-            missing_keys = required_keys - pkg.keys()
-            logger.warning(f"Skipping incomplete package data: {pkg}. Missing required keys: {missing_keys}")
+    except Exception as e:
+        logger.error(f"Error during initial travel package search (v2): {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to process initial travel package search")
 
-    travel_packages = [TravelPackage(**pkg) for pkg in valid_packages]
+    # --- Step 2: LLM Re-ranking/Selection ---
+    if not initial_package_dicts:
+        # If no initial results, return empty
+         return TravelPackageSearchResponse(packages=[], total_count=0)
+         
+    try:
+        # Run the LLM processing asynchronously
+        reranked_packages = await process_llm_rerank(payload, initial_package_dicts)
+        logger.info(f"LLM reranking resulted in {len(reranked_packages)} packages.")
+    except Exception as e:
+        logger.error(f"Error during LLM reranking process: {str(e)}", exc_info=True)
+        # Fallback strategy: Return the original results if LLM fails? Or empty?
+        # For now, let's return empty if LLM stage fails critically.
+        # Consider returning initial results converted to TravelPackage if preferred.
+        reranked_packages = [] # Default to empty on critical LLM failure
+        # Example fallback to initial results:
+        # reranked_packages = [TravelPackage.model_validate(pkg) for pkg in initial_package_dicts]
 
-    return TravelPackageSearchResponse(
-        packages=travel_packages,
-        total_count=len(travel_packages)
+
+    # --- Step 3: Final Response ---
+    response = TravelPackageSearchResponse(
+        packages=reranked_packages,
+        total_count=len(reranked_packages)
     )
+    return response
 
 # Add a simple health check endpoint
 @app.get("/health")
@@ -315,6 +565,6 @@ async def health_check():
 # ------------------------------------------------------------
 # Main Function
 # ------------------------------------------------------------
-# if __name__ == "__main__":
-#     # Run the FastAPI app using uvicorn
-#     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
+if __name__ == "__main__":
+    # Run the FastAPI app using uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 

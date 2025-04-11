@@ -127,16 +127,16 @@ if __name__ == "__main__":
                 "notes_input": ""
             }
         },
-        # {
-        #     "name": "Adventure Trip Test",
-        #     "params": {
-        #         "location_input": "mountain trekking in Vietnam",
-        #         "duration_input": "3 days",
-        #         "budget_input": "budget friendly",
-        #         "activities_input": "hiking, camping",
-        #         "notes_input": "adventurous experience"
-        #     }
-        # }
+        {
+            "name": "Adventure Trip Test",
+            "params": {
+                "location_input": "mountain trekking in Vietnam",
+                "duration_input": "3 days",
+                "budget_input": "budget friendly",
+                "activities_input": "hiking, camping",
+                "notes_input": "adventurous experience"
+            }
+        }
     ]
     
     for test_case in test_cases:

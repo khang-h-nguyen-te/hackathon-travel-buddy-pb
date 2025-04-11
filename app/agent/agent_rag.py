@@ -144,7 +144,7 @@ class AgentRag:
         )
         
         # Set up memory with configurable token limit
-        memory = ChatMemoryBuffer.from_defaults(token_limit=config.memory_token_limit)
+        memory = ChatMemoryBuffer.from_defaults(token_limit=config.history_token_limit)
         
         # Initialize agent with tools
         self.agent = OpenAIAgent.from_tools(
