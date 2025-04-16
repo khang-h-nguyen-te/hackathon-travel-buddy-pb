@@ -160,3 +160,80 @@ You might have information from the ongoing conversation. Use it to understand t
 - Present the results attractively, focusing on key selling points from the package data.
 """
 ) 
+
+
+# Suggest Tour Template
+SUGGEST_TOUR_TEMPLATE = (
+    """
+# Engineering Prompt: Combine Base Tour Packages into a Tailored Travel Package
+
+## Objective:
+As a travel package generator, I am tasked with combining multiple base tour packages into a cohesive, customized travel package for a user. The goal is to suggest a personalized itinerary based on the user's preferences for activities, accommodation, and pricing while ensuring the combined package makes sense logistically. The process involves combining tour details, adjusting for customization parameters, and providing a clear output that aligns with the user's selected preferences.
+
+---
+
+## Steps to Follow:
+
+### 1. Input Information:
+I will receive multiple **base tour packages**. Each package contains the following details:
+- **Tour activities** (e.g., sightseeing, adventure, cultural experiences).
+- **Duration** (days of the tour).
+- **Accommodation options** (e.g., 3-star, 5-star).
+- **Pricing** (base price and add-ons).
+- **Transportation type** (e.g., private vehicle, flight, bus).
+- **Region/Location** covered (e.g., city, beach, mountains).
+
+I will also receive **customization parameters**:
+- **Number of participants**.
+- **Preferred activity types**.
+- **Accommodation preferences** (budget, mid-range, luxury).
+- **Budget range**.
+- **Tour duration adjustments** (optional).
+
+---
+
+### 2. Package Combination Logic:
+- I will analyze the selected base tours and **merge activities** from different packages while ensuring **no overlap**.
+- The **pricing** for each selected base tour will be adjusted based on the group size, accommodation upgrades, and any add-ons.
+- I will recommend the best **transportation options** based on the location of the activities and the overall distance.
+
+---
+
+### 3. Generate Output:
+I will produce the following:
+
+- **Suggested Activities**: A personalized itinerary combining activities from the selected tours.
+- **Pricing Breakdown**: The cost of each base tour adjusted for customization parameters like group size and accommodation preferences.
+- **Accommodation Options**: A list of accommodations that match the user’s preferences (e.g., 3-star, mid-range).
+- **Transportation Mode**: The best mode of transportation for the entire combined tour.
+- **Total Duration**: The total duration of the combined tour.
+
+---
+
+### 4. Example Input and Output:
+
+#### Example Input:
+- **Base Tour 1**: City Tour (4 days), sightseeing, 3-star hotel, $500 per person.
+- **Base Tour 2**: Beach Adventure (5 days), water sports, 5-star resort, $700 per person.
+- **Base Tour 3**: Mountain Trek (3 days), hiking, camping, $350 per person.
+
+**Customization Parameters**:
+- Preferred activity: Adventure (Beach & Mountain)
+- Budget: $1500 for 2 participants
+- Accommodation preference: Mid-range
+
+#### Suggested Output:
+- **Activities**: 2 days of beach activities (water sports) + 2 days of mountain trekking.
+- **Accommodation**: 3-star beach resort and mountain camping.
+- **Pricing Breakdown**: $700 (Beach) + $350 (Mountain) = $1050 for 2 participants.
+- **Transportation**: Local buses between beach and mountain locations.
+- **Total Duration**: 5 days.
+
+---
+
+### 5. Final Considerations:
+- Ensure **no schedule conflicts** between activities from different tours.
+- If the **group size** exceeds certain limits, suggest appropriate **group discounts**.
+- Provide a **user interface** where the user can adjust parameters like budget and activity preferences.
+"""
+)

@@ -1,4 +1,4 @@
-from typing import Annotated, List, Dict
+from typing import Annotated, List, Dict, Optional
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +26,8 @@ from app.config.env_config import config
 from app.services.embeddings import EmbeddingService
 from app.vectorstore.supabase_vectorstore import SupabaseVectorStore
 from app.tools.search.search_tools import SearchTravelPackagesTool
+from app.models.suggest_tour_models import CustomizationParameters, TourSuggestionResponse
+from app.services.tour_suggestion_service import TourSuggestionService
 
 # Configure logging
 logging.basicConfig(
@@ -60,6 +62,12 @@ agent_initializer = AgentRag(history_module=chat_history_module)
 
 # Create logger for the FastAPI app
 logger = logging.getLogger(__name__)
+
+# Create a tour suggestion service instance
+tour_service = TourSuggestionService(
+    vector_store=None,  # Will be initialized properly in the endpoint
+    embedding_service=None  # Will be initialized properly in the endpoint
+)
 
 @app.post("/authenticate/{command}")
 async def authenticate(command: str, payload: SignInRequest):
@@ -555,6 +563,153 @@ async def search_travel_packages_v2(
         total_count=len(reranked_packages)
     )
     return response
+
+# Define a POST endpoint to search travel packages v2 and suggest combined tours
+@app.post("/suggest-tour", response_model=TourSuggestionResponse)
+async def suggest_tour(
+    authorization: Annotated[str, Header()],
+    location_input: str = "",
+    budget_input: str = "",
+    accommodation_input: str = "",
+    activities_input: str = "",
+    num_participants: int = 2,
+    preferred_activities: str = "",
+    accommodation_preference: str = "mid-range",
+    budget_range: str = "",
+    duration_adjustment: str = "",
+    match_count: int = 5
+):
+    """
+    Search for travel packages and generate a combined tour suggestion.
+    
+    First searches for travel packages using vector search, then uses LLM to create a personalized tour suggestion
+    by combining and customizing the found packages.
+    """
+    # Validate authorization
+    auth_header = authorization
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Valid Authorization header with Bearer token is required"
+        )
+    
+    # Initialize services
+    try:
+        embedding_service = EmbeddingService()
+        vector_store = SupabaseVectorStore(
+            url=config.supabase_url,
+            key=config.supabase_anon_key,
+            auth=config.supabase_service_key # Use service key for backend search
+        )
+        
+        # Update the service with initialized components
+        tour_service.vector_store = vector_store
+        tour_service.embedding_service = embedding_service
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize services for suggest-tour: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to initialize search services")
+
+    # Build notes_input by concatenating other fields
+    notes_elements = []
+    if location_input:
+        notes_elements.append(f"Location: {location_input}")
+    if budget_input:
+        notes_elements.append(f"Budget: {budget_input}")
+    if budget_range and budget_range != budget_input:
+        notes_elements.append(f"Budget range: {budget_range}")
+    if accommodation_input:
+        notes_elements.append(f"Accommodation: {accommodation_input}")
+    if accommodation_preference and accommodation_preference != "mid-range":
+        notes_elements.append(f"Accommodation preference: {accommodation_preference}")
+    if activities_input:
+        notes_elements.append(f"Activities: {activities_input}")
+    if preferred_activities and preferred_activities != activities_input:
+        notes_elements.append(f"Preferred activities: {preferred_activities}")
+    if num_participants != 2:
+        notes_elements.append(f"Group size: {num_participants} participants")
+    if duration_adjustment:
+        notes_elements.append(f"Duration adjustment: {duration_adjustment}")
+    
+    notes_input = ". ".join(notes_elements)
+    print(f"[DEBUG] Generated notes_input: {notes_input}")
+    print(f"[DEBUG] Processing suggest-tour request with location: {location_input}, activities: {activities_input} and budget: {budget_input}")
+    
+    # Step 1: Search for base tour packages using v2 search
+    try:
+        # Use the budget_range as budget_input if budget_input is empty
+        if not budget_input and budget_range:
+            budget_input = budget_range
+            
+        # Use preferred_activities as activities_input if activities_input is empty
+        if not activities_input and preferred_activities:
+            activities_input = preferred_activities
+            
+        # Search for base packages
+        try:
+            print("[DEBUG] Calling search_travel_packages_v2 with parameters:")
+            print(f"[DEBUG] location_input: {location_input}")
+            print(f"[DEBUG] budget_input: {budget_input}")
+            print(f"[DEBUG] accommodation_input: {accommodation_input}")
+            print(f"[DEBUG] activities_input: {activities_input}")
+            print(f"[DEBUG] notes_input: {notes_input}")
+            print(f"[DEBUG] match_count: {match_count}")
+            
+            base_packages = await tour_service.search_travel_packages_v2(
+                location_input=location_input,
+                budget_input=budget_input,
+                accommodation_input=accommodation_input,
+                activities_input=activities_input,
+                notes_input=notes_input,
+                match_count=match_count
+            )
+        except Exception as e:
+            print(f"[ERROR] Error details in search_travel_packages_v2: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to search for base tour packages")
+        
+        if not base_packages:
+            print("[WARNING] No base packages found for the given search criteria")
+            raise HTTPException(
+                status_code=404, 
+                detail="No tour packages found matching your criteria. Please try different search parameters."
+            )
+            
+        print(f"[INFO] Found {len(base_packages)} base packages for tour suggestion")
+            
+    except Exception as e:
+        print(f"[ERROR] Error during base package search: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to search for base tour packages")
+    
+    # Step 2: Generate tour suggestion
+    try:
+        # If no preferred_activities were provided but activities_input exists, use that
+        if not preferred_activities and activities_input:
+            preferred_activities = activities_input
+        
+        # If preferred_activities is still empty, provide a default
+        if not preferred_activities:
+            preferred_activities = "Sightseeing"
+            
+        # If no budget_range was provided but budget_input exists, use that
+        if not budget_range and budget_input:
+            budget_range = budget_input
+            
+        # Generate tour suggestion
+        suggestion_response = await tour_service.generate_tour_suggestion(
+            base_tours=base_packages,
+            num_participants=num_participants,
+            preferred_activities=preferred_activities,
+            accommodation_preference=accommodation_preference,
+            budget_range=budget_range,
+            duration_adjustment=duration_adjustment
+        )
+        
+        print("[INFO] Successfully generated tour suggestion")
+        return suggestion_response
+        
+    except Exception as e:
+        print(f"[ERROR] Error during tour suggestion generation: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate tour suggestion")
 
 # Add a simple health check endpoint
 @app.get("/health")
