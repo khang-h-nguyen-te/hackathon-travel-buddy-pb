@@ -591,7 +591,7 @@ async def suggest_tour(
         vector_store = SupabaseVectorStore(
             url=config.supabase_url,
             key=config.supabase_anon_key,
-            auth=config.supabase_service_key # Use service key for backend search
+            auth=auth_header # Use service key for backend search
         )
         
         # Update the service with initialized components
