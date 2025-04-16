@@ -62,5 +62,5 @@ class TourSuggestion(BaseModel):
 
 class TourSuggestionResponse(BaseModel):
     """Response model for the tour suggestion endpoint."""
-    suggested_tour: TourSuggestion = Field(..., description="The suggested combined tour package")
-    base_tours_used: List[BaseTour] = Field(default_factory=list, description="Base tours used in the suggestion") 
+    suggested_tours: List[TourSuggestion] = Field(..., description="List of suggested combined tour packages")
+    base_tours_used: List[BaseTour] = Field(default_factory=list, description="Base tours used in the suggestions") 

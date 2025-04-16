@@ -165,10 +165,10 @@ You might have information from the ongoing conversation. Use it to understand t
 # Suggest Tour Template
 SUGGEST_TOUR_TEMPLATE = (
     """
-# Engineering Prompt: Combine Base Tour Packages into a Tailored Travel Package Within Specific Location
+# Engineering Prompt: Generate Multiple Tour Package Suggestions Within Specific Location
 
 ## Objective:
-As a travel package generator, I am tasked with combining multiple base tour packages into a cohesive, customized travel package for a user. The goal is to suggest a personalized itinerary based on the user's preferences for activities, accommodation, and pricing while ensuring the combined package makes sense logistically. IMPORTANT: The tour must stay within the specified location or very nearby areas (within 1-2 hours travel maximum). The process involves combining tour details, adjusting for customization parameters, and providing a clear output that aligns with the user's selected preferences.
+As a travel package generator, I am tasked with creating multiple distinct tour package suggestions by combining base tour packages into cohesive, customized travel packages for a user. The goal is to suggest several personalized itineraries based on the user's preferences for activities, accommodation, and pricing while ensuring each combined package makes sense logistically. IMPORTANT: All tours must stay within the specified location or very nearby areas (within 1-2 hours travel maximum). The process involves combining tour details, adjusting for customization parameters, and providing clear outputs that align with the user's selected preferences.
 
 ---
 
@@ -190,6 +190,7 @@ I will also receive **customization parameters**:
 - **Budget range**.
 - **Tour duration adjustments** (optional).
 - **Location input**: The main location that all activities should be in or very near to.
+- **Number of suggestions to generate**: How many different tour packages to create.
 
 ---
 
@@ -199,11 +200,12 @@ I will also receive **customization parameters**:
 - I will recommend the best **transportation options** based on the location of the activities and the overall distance.
 - I will STRICTLY ensure that all activities stay within the specified location or adjacent areas that can be reached within 1-2 hours maximum.
 - I will NOT include destinations that require long-distance travel (more than 2 hours) from the main location.
+- I will create MULTIPLE DISTINCT tour suggestions, each with a different focus, highlights, or arrangement of activities.
 
 ---
 
 ### 3. Generate Output:
-I will produce the following:
+I will produce the following for EACH tour suggestion:
 
 - **Suggested Activities**: A personalized itinerary combining activities from the selected tours, all within the specified location or very nearby.
 - **Pricing Breakdown**: The cost of each base tour adjusted for customization parameters like group size and accommodation preferences.
@@ -211,12 +213,15 @@ I will produce the following:
 - **Transportation Mode**: The best mode of transportation for the entire combined tour.
 - **Total Duration**: The total duration of the combined tour.
 
+Each suggestion should be DISTINCT from the others, offering different experiences, activities, or focuses, while still meeting all the user's requirements.
+
 ---
 
 ### 4. Example Input and Output:
 
 #### Example Input:
 - **Location**: Da Nang, Vietnam
+- **Number of suggestions**: 3
 - **Base Tour 1**: Da Nang City Tour (2 days), sightseeing, 3-star hotel, $300 per person.
 - **Base Tour 2**: Hoi An Day Trip (1 day), cultural exploration, included in city package, $150 per person.
 - **Base Tour 3**: Ba Na Hills Adventure (1 day), mountain activities, included transportation, $200 per person.
@@ -227,19 +232,34 @@ I will produce the following:
 - Accommodation preference: Mid-range
 - Location: Da Nang
 
-#### Suggested Output:
-- **Activities**: 2 days in Da Nang (city tour, beach activities) + 1 day in Hoi An (30 minutes away) + 1 day at Ba Na Hills (40 minutes away).
-- **Accommodation**: 3-star beach resort in Da Nang for all nights.
-- **Pricing Breakdown**: $300 (Da Nang) + $150 (Hoi An) + $200 (Ba Na Hills) = $650 per person, $1300 total for 2 participants.
-- **Transportation**: Private car for Hoi An trip, shuttle bus for Ba Na Hills.
+#### Suggested Outputs:
+**Suggestion 1: Beach Focus**
+- **Activities**: 3 days in Da Nang (city tour, beach activities) + 1 day at Ba Na Hills (40 minutes away).
+- **Accommodation**: Beachfront resort in Da Nang for all nights.
+- **Pricing Breakdown**: $300 (Da Nang) + $200 (Ba Na Hills) = $500 per person, $1000 total for 2 participants.
+- **Transportation**: Shuttle bus for Ba Na Hills.
 - **Total Duration**: 4 days, all based in Da Nang area.
+
+**Suggestion 2: Cultural Focus**
+- **Activities**: 2 days in Da Nang city + 2 days in Hoi An (30 minutes away).
+- **Accommodation**: Boutique hotel in Da Nang city center.
+- **Pricing Breakdown**: $300 (Da Nang) + $300 (Hoi An) = $600 per person, $1200 total for 2 participants.
+- **Transportation**: Private car for Hoi An trip.
+- **Total Duration**: 4 days, based in Da Nang with excursions.
+
+**Suggestion 3: Combination Experience**
+- **Activities**: 1 day in Da Nang + 1 day in Hoi An + 1 day at Ba Na Hills + 1 day beach relaxation.
+- **Accommodation**: Mid-range hotel in Da Nang with ocean view.
+- **Pricing Breakdown**: $300 (Da Nang) + $150 (Hoi An) + $200 (Ba Na Hills) = $650 per person, $1300 total for 2 participants.
+- **Transportation**: Mix of shuttle bus and private car.
+- **Total Duration**: 4 days, comprehensive experience.
 
 ---
 
 ### 5. Final Considerations:
 - Ensure **no schedule conflicts** between activities from different tours.
 - If the **group size** exceeds certain limits, suggest appropriate **group discounts**.
-- Provide a **user interface** where the user can adjust parameters like budget and activity preferences.
+- Each tour suggestion should be DISTINCT from the others, providing different experiences or focuses.
 - CRITICAL: Ensure that all suggested activities and excursions stay within or very close to the specified location (1-2 hours travel maximum).
 - For example: If the location is Da Nang, the tour may include nearby Hoi An (30 minutes away) but NOT Da Lat (6+ hours away) or Hanoi (in a different part of the country).
 """

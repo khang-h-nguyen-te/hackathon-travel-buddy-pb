@@ -152,10 +152,11 @@ class TourSuggestionService:
         accommodation_preference: str,
         budget_range: str,
         duration_adjustment: str = "",
-        location_input: str = ""
+        location_input: str = "",
+        num_suggestions: int = 3
     ) -> TourSuggestionResponse:
         """
-        Generate a tour suggestion by combining multiple base tours and customizing them.
+        Generate multiple tour suggestions by combining base tours and customizing them.
         
         Args:
             base_tours: List of base tour packages to combine
@@ -165,11 +166,12 @@ class TourSuggestionService:
             budget_range: Budget range
             duration_adjustment: Duration adjustment as a string (e.g., "2 days longer", "shorter trip")
             location_input: The main location that should be the focus of the tour
+            num_suggestions: Number of different tour suggestions to generate
             
         Returns:
-            A structured tour suggestion
+            A structured tour suggestion response with multiple tour options
         """
-        print(f"[INFO] Generating tour suggestion for {len(base_tours)} base tours in/near {location_input}")
+        print(f"[INFO] Generating {num_suggestions} tour suggestions for {len(base_tours)} base tours in/near {location_input}")
         
         # Format the base tours for the prompt
         formatted_tours = []
@@ -211,25 +213,26 @@ class TourSuggestionService:
         params_text += f"- Accommodation preference: {accommodation_preference}\n"
         params_text += f"- Budget range: {budget_range}\n"
         params_text += f"- Main location: {location_input}\n"
+        params_text += f"- Number of tour suggestions to generate: {num_suggestions}\n"
         
         if duration_adjustment:
             params_text += f"- Duration adjustment: {duration_adjustment}\n"
         
         # Build the complete prompt
         user_prompt = (
-            f"Please combine and customize these base tour packages based on the parameters for a tour in/near {location_input}:\n\n" +
+            f"Please create {num_suggestions} different tour suggestions by combining these base tour packages based on the parameters for a tour in/near {location_input}:\n\n" +
             base_tours_text + "\n" +
             params_text + "\n" +
-            "Please provide a complete suggested tour package combining these base tours " +
-            f"and customizing them according to the parameters. The tour MUST be focused on {location_input} " +
-            "and only include nearby locations (within 1-2 hours travel maximum). " +
-            "Include a daily itinerary, pricing breakdown, accommodation options, transportation details, and highlights. " +
+            f"Please provide {num_suggestions} distinct suggested tour packages that offer different experiences " +
+            "while still using the base tours. Make each suggestion unique in terms of itinerary, duration, or focus. " +
+            f"All tours MUST be focused on {location_input} and only include nearby locations (within 1-2 hours travel maximum). " +
+            "Include a daily itinerary, pricing breakdown, accommodation options, transportation details, and highlights for each suggestion. " +
             f"DO NOT suggest activities or destinations that are far from {location_input} (more than 2 hours travel)."
         )
         
         # Call the OpenAI API to generate the tour suggestion with structured output
         try:
-            print("[INFO] Calling OpenAI API for tour suggestion")
+            print("[INFO] Calling OpenAI API for tour suggestions")
             
             # Use the parse method for structured output
             from app.models.suggest_tour_models import TourSuggestionResponse, TourSuggestion
@@ -241,11 +244,44 @@ class TourSuggestionService:
                     {"role": "user", "content": user_prompt}
                 ],
                 response_format=TourSuggestionResponse,
-                temperature=0.7, # Some creativity but not too random
+                temperature=0.9, # Increased temperature for more diverse suggestions
             )
             
             # Get the parsed structured output
             tour_response = completion.choices[0].message.parsed
+            
+            # Ensure we have the expected number of suggestions, or at least one
+            if not tour_response.suggested_tours or len(tour_response.suggested_tours) == 0:
+                print("[WARNING] No tour suggestions were generated, creating a fallback suggestion")
+                # Create at least one suggestion as fallback
+                fallback_suggestion = TourSuggestion(
+                    title=f"Tour Package for {location_input}",
+                    description=f"A customized tour package for {location_input} and nearby areas.",
+                    total_duration=5,
+                    pricing={
+                        "total_price_per_person": 500.0,
+                        "total_price_group": float(500.0 * num_participants),
+                        "includes": ["Accommodation", "Local transportation"],
+                        "excludes": ["International flights", "Personal expenses"]
+                    },
+                    accommodation=[{
+                        "name": "Standard Hotel",
+                        "type": accommodation_preference,
+                        "description": "Standard accommodation based on your preferences.",
+                        "price_range": budget_range
+                    }],
+                    transportation={
+                        "methods": ["Local transportation"],
+                        "description": "Standard local transportation options."
+                    },
+                    itinerary=[{
+                        "day": 1,
+                        "activities": ["Arrival and check-in", "Welcome dinner"],
+                        "description": "Arrival day with welcome activities."
+                    }],
+                    highlights=["Customized tour based on your preferences"]
+                )
+                tour_response.suggested_tours = [fallback_suggestion]
             
             # Set the base_tours_used field with the complete tour data
             base_tours_list = []
@@ -271,8 +307,11 @@ class TourSuggestionService:
             
             tour_response.base_tours_used = base_tours_list
             
+            # Log the number of suggestions generated
+            print(f"[INFO] Generated {len(tour_response.suggested_tours)} tour suggestions")
+            
             return tour_response
                 
         except Exception as e:
-            print(f"[ERROR] Error generating tour suggestion: {str(e)}")
+            print(f"[ERROR] Error generating tour suggestions: {str(e)}")
             raise Exception(f"Tour suggestion generation failed: {str(e)}") 

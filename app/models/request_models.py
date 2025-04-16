@@ -87,6 +87,7 @@ class TourSuggestionRequest(BaseModel):
     budget_range: str = ""
     duration_adjustment: str = ""
     match_count: int = 5
+    num_suggestions: int = 3  # Number of tour suggestions to generate
     
     @model_validator(mode='before')
     @classmethod
@@ -94,7 +95,7 @@ class TourSuggestionRequest(BaseModel):
         if isinstance(data, dict):
             for key, value in data.items():
                 # Apply logic only to string fields, excluding numeric fields
-                if key not in ['num_participants', 'match_count'] and key in cls.model_fields and value is None:
+                if key not in ['num_participants', 'match_count', 'num_suggestions'] and key in cls.model_fields and value is None:
                     # Check if the field is expected to be a string (or Optional[str])
                     annotation = cls.model_fields[key].annotation
                     if annotation == str or annotation == Optional[str]:

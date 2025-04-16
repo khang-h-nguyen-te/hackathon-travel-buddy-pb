@@ -572,10 +572,10 @@ async def suggest_tour(
     request: TourSuggestionRequest
 ):
     """
-    Search for travel packages and generate a combined tour suggestion.
+    Search for travel packages and generate multiple tour suggestions.
     
-    First searches for travel packages using vector search, then uses LLM to create a personalized tour suggestion
-    by combining and customizing the found packages.
+    First searches for travel packages using vector search, then uses LLM to create personalized tour suggestions
+    by combining and customizing the found packages. Returns multiple distinct tour options that meet the criteria.
     """
     # Validate authorization
     auth_header = authorization
@@ -613,6 +613,7 @@ async def suggest_tour(
     budget_range = request.budget_range
     duration_adjustment = request.duration_adjustment
     match_count = request.match_count
+    num_suggestions = request.num_suggestions
 
     # Build notes_input by concatenating other fields
     notes_elements = []
@@ -684,7 +685,7 @@ async def suggest_tour(
         print(f"[ERROR] Error during base package search: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to search for base tour packages")
     
-    # Step 2: Generate tour suggestion
+    # Step 2: Generate tour suggestions
     try:
         # If no preferred_activities were provided but activities_input exists, use that
         if not preferred_activities and activities_input:
@@ -698,7 +699,7 @@ async def suggest_tour(
         if not budget_range and budget_input:
             budget_range = budget_input
             
-        # Generate tour suggestion
+        # Generate tour suggestions
         suggestion_response = await tour_service.generate_tour_suggestion(
             base_tours=base_packages,
             num_participants=num_participants,
@@ -706,15 +707,16 @@ async def suggest_tour(
             accommodation_preference=accommodation_preference,
             budget_range=budget_range,
             duration_adjustment=duration_adjustment,
-            location_input=location_input
+            location_input=location_input,
+            num_suggestions=num_suggestions
         )
         
-        print("[INFO] Successfully generated tour suggestion")
+        print("[INFO] Successfully generated tour suggestions")
         return suggestion_response
         
     except Exception as e:
         print(f"[ERROR] Error during tour suggestion generation: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to generate tour suggestion")
+        raise HTTPException(status_code=500, detail="Failed to generate tour suggestions")
 
 # Add a simple health check endpoint
 @app.get("/health")
