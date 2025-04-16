@@ -16,6 +16,7 @@ from app.models.request_models import (
     SignInRequest, 
     TravelPackageSearchRequest,
     TravelPackageSearchResponse,
+    TourSuggestionRequest,
     TravelPackage
 )
 from app.utils.response_utils import create_response, validate_params
@@ -432,13 +433,13 @@ async def search_travel_packages(
             status_code=401,
             detail="Valid Authorization header with Bearer token is required"
         )
-        
+    
     # Initialize services
     try:
         embedding_service = EmbeddingService()
         vector_store = SupabaseVectorStore(
-            url=config.supabase_url,
-            key=config.supabase_anon_key,
+        url=config.supabase_url,
+        key=config.supabase_anon_key,
             auth=auth_header.replace("Bearer ", "") # Use service key for backend search
         )
     except Exception as e:
@@ -451,21 +452,21 @@ async def search_travel_packages(
     loop = asyncio.get_event_loop()
     try:
         package_dicts = await loop.run_in_executor(
-            executor,
+        executor,
             process_travel_search, # Assuming process_travel_search returns List[Dict]
-            payload.location_input,
-            payload.duration_input,
-            payload.budget_input,
-            payload.transportation_input,
-            payload.accommodation_input,
-            payload.food_input,
-            payload.activities_input,
-            payload.notes_input,
-            payload.match_count,
-            vector_store,
-            embedding_service
-        )
-        
+        payload.location_input,
+        payload.duration_input,
+        payload.budget_input,
+        payload.transportation_input,
+        payload.accommodation_input,
+        payload.food_input,
+        payload.activities_input,
+        payload.notes_input,
+        payload.match_count,
+        vector_store,
+        embedding_service
+    )
+    
         # Validate results into Pydantic models
         validated_packages = []
         for pkg_dict in package_dicts:
@@ -567,17 +568,8 @@ async def search_travel_packages_v2(
 # Define a POST endpoint to search travel packages v2 and suggest combined tours
 @app.post("/suggest-tour", response_model=TourSuggestionResponse)
 async def suggest_tour(
-    authorization: Annotated[str, Header()],
-    location_input: str = "",
-    budget_input: str = "",
-    accommodation_input: str = "",
-    activities_input: str = "",
-    num_participants: int = 2,
-    preferred_activities: str = "",
-    accommodation_preference: str = "mid-range",
-    budget_range: str = "",
-    duration_adjustment: str = "",
-    match_count: int = 5
+    authorization: str,
+    request: TourSuggestionRequest
 ):
     """
     Search for travel packages and generate a combined tour suggestion.
@@ -607,8 +599,20 @@ async def suggest_tour(
         tour_service.embedding_service = embedding_service
         
     except Exception as e:
-        logger.error(f"Failed to initialize services for suggest-tour: {e}", exc_info=True)
+        print(f"[ERROR] Failed to initialize services for suggest-tour: {e}")
         raise HTTPException(status_code=500, detail="Failed to initialize search services")
+
+    # Extract values from the request model
+    location_input = request.location_input
+    budget_input = request.budget_input
+    accommodation_input = request.accommodation_input
+    activities_input = request.activities_input
+    num_participants = request.num_participants
+    preferred_activities = request.preferred_activities
+    accommodation_preference = request.accommodation_preference
+    budget_range = request.budget_range
+    duration_adjustment = request.duration_adjustment
+    match_count = request.match_count
 
     # Build notes_input by concatenating other fields
     notes_elements = []
@@ -701,7 +705,8 @@ async def suggest_tour(
             preferred_activities=preferred_activities,
             accommodation_preference=accommodation_preference,
             budget_range=budget_range,
-            duration_adjustment=duration_adjustment
+            duration_adjustment=duration_adjustment,
+            location_input=location_input
         )
         
         print("[INFO] Successfully generated tour suggestion")

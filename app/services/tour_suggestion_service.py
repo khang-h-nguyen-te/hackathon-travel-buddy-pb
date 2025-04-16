@@ -116,14 +116,14 @@ class TourSuggestionService:
             }
             
             try:
-                print(f"[DEBUG] Calling RPC function 'search_travel_packages_v2' with payload keys: {rpc_payload.keys()}")
+                print(f"[DEBUG] Calling RPC function 'search_travel_packages_v3' with payload keys: {rpc_payload.keys()}")
                 response = supabase_client.rpc(
-                    "search_travel_packages_v2",
+                    "search_travel_packages_v3",
                     rpc_payload
                 ).execute()
                 
                 if hasattr(response, "error") and response.error is not None:
-                    print(f"[ERROR] Error from Supabase search_travel_packages_v2: {response.error}")
+                    print(f"[ERROR] Error from Supabase search_travel_packages_v3: {response.error}")
                     raise Exception(f"Supabase search error: {response.error}")
                 
                 # The response should contain a data field with the results
@@ -151,7 +151,8 @@ class TourSuggestionService:
         preferred_activities: str,
         accommodation_preference: str,
         budget_range: str,
-        duration_adjustment: str = ""
+        duration_adjustment: str = "",
+        location_input: str = ""
     ) -> TourSuggestionResponse:
         """
         Generate a tour suggestion by combining multiple base tours and customizing them.
@@ -163,11 +164,12 @@ class TourSuggestionService:
             accommodation_preference: Accommodation preference
             budget_range: Budget range
             duration_adjustment: Duration adjustment as a string (e.g., "2 days longer", "shorter trip")
+            location_input: The main location that should be the focus of the tour
             
         Returns:
             A structured tour suggestion
         """
-        print(f"[INFO] Generating tour suggestion for {len(base_tours)} base tours")
+        print(f"[INFO] Generating tour suggestion for {len(base_tours)} base tours in/near {location_input}")
         
         # Format the base tours for the prompt
         formatted_tours = []
@@ -175,6 +177,7 @@ class TourSuggestionService:
             formatted_tour = (
                 f"**Base Tour {i}**: {tour.get('title', f'Tour {i}')} "
                 f"({tour.get('duration_days', 'unknown')} days), "
+                f"location: {tour.get('location', 'Unknown location')}, "
                 f"highlights: {', '.join(tour.get('highlights', ['unknown']))}, "
                 f"price: ${tour.get('price', 0)}, "
                 f"description: {tour.get('description', 'No description available')}"
@@ -186,7 +189,8 @@ class TourSuggestionService:
             "Number of participants": num_participants,
             "Preferred activities": preferred_activities,
             "Accommodation preference": accommodation_preference,
-            "Budget range": budget_range
+            "Budget range": budget_range,
+            "Location": location_input
         }
         
         if duration_adjustment:
@@ -206,18 +210,21 @@ class TourSuggestionService:
         params_text += f"- Preferred activities: {preferred_activities}\n"
         params_text += f"- Accommodation preference: {accommodation_preference}\n"
         params_text += f"- Budget range: {budget_range}\n"
+        params_text += f"- Main location: {location_input}\n"
         
         if duration_adjustment:
             params_text += f"- Duration adjustment: {duration_adjustment}\n"
         
         # Build the complete prompt
         user_prompt = (
-            "Please combine and customize these base tour packages based on the parameters:\n\n" +
+            f"Please combine and customize these base tour packages based on the parameters for a tour in/near {location_input}:\n\n" +
             base_tours_text + "\n" +
             params_text + "\n" +
             "Please provide a complete suggested tour package combining these base tours " +
-            "and customizing them according to the parameters. Include a daily itinerary, " +
-            "pricing breakdown, accommodation options, transportation details, and highlights."
+            f"and customizing them according to the parameters. The tour MUST be focused on {location_input} " +
+            "and only include nearby locations (within 1-2 hours travel maximum). " +
+            "Include a daily itinerary, pricing breakdown, accommodation options, transportation details, and highlights. " +
+            f"DO NOT suggest activities or destinations that are far from {location_input} (more than 2 hours travel)."
         )
         
         # Call the OpenAI API to generate the tour suggestion with structured output

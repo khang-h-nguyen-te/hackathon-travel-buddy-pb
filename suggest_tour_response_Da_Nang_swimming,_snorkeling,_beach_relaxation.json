@@ -1,0 +1,156 @@
+{
+  "suggested_tour": {
+    "title": "Ultimate Da Nang Leisure Escape: Beachfront Bliss & Cultural Highlights",
+    "description": "Experience the perfect blend of relaxation and exploration in Da Nang with our 7-day tailored package. Enjoy luxury beachfront accommodations, indulge in local cuisine, and explore nearby cultural gems and natural wonders.",
+    "total_duration": 7,
+    "pricing": {
+      "total_price_per_person": 900.0,
+      "total_price_group": 1800.0,
+      "includes": [
+        "Luxury beachfront hotel stay for 6 nights",
+        "All meals as per itinerary",
+        "Entry tickets to Marble Mountains, Lady Buddha, and Suoi Than Tai Hot Springs",
+        "Private transportation throughout the tour",
+        "English-speaking guide"
+      ],
+      "excludes": [
+        "Personal expenses",
+        "Optional activities not listed",
+        "Travel insurance"
+      ]
+    },
+    "accommodation": [
+      {
+        "name": "Luxury Beachfront Hotel in Da Nang",
+        "type": "Hotel",
+        "description": "A 5-star beachfront hotel with stunning views of My Khe Beach, top-tier dining options, and spa facilities.",
+        "price_range": "$200-$300 per night"
+      }
+    ],
+    "transportation": {
+      "methods": [
+        "Private car",
+        "Shuttle bus"
+      ],
+      "description": "Private car for airport transfers and day trips; shuttle bus for local excursions to nearby sites."
+    },
+    "itinerary": [
+      {
+        "day": 1,
+        "activities": [
+          "Arrival in Da Nang",
+          "Check-in at luxury beachfront hotel",
+          "Relax at hotel facilities"
+        ],
+        "meals": [
+          "Dinner at hotel restaurant"
+        ],
+        "description": "Arrive at Da Nang and start your journey with a relaxing evening at your luxurious beachfront hotel."
+      },
+      {
+        "day": 2,
+        "activities": [
+          "Explore Marble Mountains",
+          "Visit Lady Buddha Statue at Son Tra Peninsula",
+          "Optional: Suoi Than Tai Hot Springs relaxation"
+        ],
+        "meals": [
+          "Breakfast at hotel",
+          "Seafood lunch at local market",
+          "Dinner by My Khe Beach"
+        ],
+        "description": "Immerse yourself in the spiritual and natural beauty of Da Nang, visiting iconic landmarks and enjoying a seafood feast."
+      },
+      {
+        "day": 3,
+        "activities": [
+          "Hoi An Day Tour",
+          "Wander Ancient Town",
+          "Visit Japanese Bridge and local artisan shops"
+        ],
+        "meals": [
+          "Breakfast at hotel",
+          "Riverside lunch in Hoi An",
+          "Dinner back in Da Nang"
+        ],
+        "description": "Discover the charm of Hoi An, just a short drive from Da Nang, with its historic streets and vibrant culture."
+      },
+      {
+        "day": 4,
+        "activities": [
+          "Relax at My Khe Beach",
+          "Optional water sports or spa morning"
+        ],
+        "meals": [
+          "Breakfast at hotel",
+          "Lunch at beachside caf\u00e9",
+          "Dinner at local restaurant"
+        ],
+        "description": "A day dedicated to unwinding on the beach, with options for water activities or a spa retreat."
+      },
+      {
+        "day": 5,
+        "activities": [
+          "Visit to Bana Hills",
+          "Explore the French Village and Golden Bridge"
+        ],
+        "meals": [
+          "Breakfast at hotel",
+          "Lunch at Bana Hills",
+          "Dinner at hotel or local restaurant"
+        ],
+        "description": "Experience the picturesque Bana Hills, known for its stunning views and unique attractions like the Golden Bridge."
+      },
+      {
+        "day": 6,
+        "activities": [
+          "Final day of leisure",
+          "Shopping at local markets",
+          "Farewell dinner"
+        ],
+        "meals": [
+          "Breakfast at hotel",
+          "Lunch at local eatery",
+          "Farewell dinner at a fine dining restaurant"
+        ],
+        "description": "Enjoy your last full day in Da Nang with leisure activities and a special farewell dinner."
+      },
+      {
+        "day": 7,
+        "activities": [
+          "Check-out from hotel",
+          "Airport transfer"
+        ],
+        "meals": [
+          "Breakfast at hotel"
+        ],
+        "description": "Conclude your Da Nang adventure with a relaxed morning and transfer to the airport for departure."
+      }
+    ],
+    "highlights": [
+      "Luxury stay in a beachfront hotel",
+      "Cultural exploration of Marble Mountains and Hoi An",
+      "Relaxation at Suoi Than Tai Hot Springs",
+      "Visit to Bana Hills and Golden Bridge",
+      "Gourmet dining experiences"
+    ]
+  },
+  "base_tours_used": [
+    {
+      "id": "abb5ae9d-5f1f-42fd-996c-18e7921e10e2",
+      "title": "Spiritual Serenity in Da Nang: Temples, Hills & Silence",
+      "description": "# \ud83c\udf0a Da Nang \u2013 *\u201cBeachfront City: Temples, Springs & Modern Soul\u201d*\r\n\r\n**Duration:** 2 Days  \r\n**Trip Type:** Relaxation + urban exploring  \r\n**Ideal For:** First-timers, beach lovers, families  \r\n**Best Season:** March\u2013August\r\n\r\n---\r\n\r\n## \ud83e\udded Overview\r\n\r\n**Da Nang** is where **Vietnam\u2019s urban spirit meets coastal calm**. Think **beach mornings, mountaintop pagodas**, and seafood markets with ocean-to-table freshness. In just two days, you\u2019ll taste the past, soak in hot springs, and toast to the city skyline \u2014 a perfect sampler of Vietnam\u2019s modern charm.\r\n\r\n---\r\n\r\n## \ud83d\udcc5 Itinerary Breakdown\r\n\r\n### \ud83d\uddd3 **Day 1: Coast, Culture & Viewpoints**\r\n\r\n- **09:00** \u2013 Airport pickup and transfer to your **beachfront hotel**.  \r\n- **10:00** \u2013 Discover the **Marble Mountains**:\r\n  - Explore mystical caves, centuries-old **Buddhist shrines**, and sweeping coastal views.  \r\n- **13:00** \u2013 **Seafood lunch** at a market-style grill \u2014 you choose your catch!  \r\n- **15:00** \u2013 Drive along the coast to **Son Tra Peninsula**, visit the **Lady Buddha Statue**:\r\n  - A 67-meter-tall protector watching over the sea.  \r\n- **17:00** \u2013 Optional soak at **Suoi Than Tai Hot Springs**:\r\n  - Natural mineral baths, mud spa, and onsen-style relaxation.  \r\n- **19:00** \u2013 **Dinner by My Khe Beach** \u2014 watch the waves roll in.  \r\n  - Optional: **Cocktail at Sky36**, Da Nang\u2019s highest rooftop bar.\r\n\r\n---\r\n\r\n### \ud83d\uddd3 **Day 2: Hoi An Add-On or Chill**\r\n\r\nChoose your vibe:\r\n\r\n#### \ud83d\uded5 Option A: **Hoi An Day Tour**\r\n- Wander the lantern-lit streets of **Ancient Town**  \r\n- Visit **Japanese Bridge**, **tailor shops**, and **street food gems**  \r\n- Enjoy a riverside lunch and drop by local artisans\u2019 homes\r\n\r\n#### \ud83c\udfd6 Option B: **Beach & Water Fun**\r\n- Wake up to **My Khe Beach**  \r\n- Try **banana boat rides**, **parasailing**, or a gentle paddleboard session  \r\n- Or: spa morning, coconut coffee by the sea, and souvenir shopping\r\n\r\n- **12:00** \u2013 Return to hotel, check-out, and transfer to airport or next destination.\r\n\r\n---\r\n\r\n## \ud83d\ude90 What\u2019s Included\r\n\r\n- \u2705 1-night beachfront hotel stay  \r\n- \u2705 All meals listed  \r\n- \u2705 Entry tickets to Marble Mountains, Lady Buddha, hot springs (if chosen)  \r\n- \u2705 Private transport & English-speaking guide\r\n\r\n---\r\n\r\n## \ud83e\uddf3 What to Bring\r\n\r\n- \ud83e\uddf4 **Sunscreen** & sunglasses  \r\n- \ud83d\udc55 **Light clothing** (linen or cotton recommended)  \r\n- \ud83d\udc59 **Beachwear** + sandals  \r\n- \ud83d\udcf7 **Camera** or phone with wide lens for epic panoramas\r\n\r\n---\r\n\r\n> *Da Nang is a gentle collision \u2014 where sea meets skyline, and tradition flows into trend.*",
+      "duration_days": 5,
+      "price": 264.55,
+      "location": "",
+      "highlights": [
+        "hot springs",
+        "modern",
+        "local experience"
+      ],
+      "accommodation_type": null,
+      "activities": [],
+      "transportation": null
+    }
+  ]
+}

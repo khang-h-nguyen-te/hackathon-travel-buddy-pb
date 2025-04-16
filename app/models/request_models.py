@@ -75,6 +75,33 @@ class TravelPackageSearchRequest(BaseModel):
         return data
 
 
+class TourSuggestionRequest(BaseModel):
+    """Request model for the /suggest-tour endpoint."""
+    location_input: str = ""
+    budget_input: str = ""
+    accommodation_input: str = ""
+    activities_input: str = ""
+    num_participants: int = 2
+    preferred_activities: str = ""
+    accommodation_preference: str = "mid-range"
+    budget_range: str = ""
+    duration_adjustment: str = ""
+    match_count: int = 5
+    
+    @model_validator(mode='before')
+    @classmethod
+    def empty_string_to_none(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            for key, value in data.items():
+                # Apply logic only to string fields, excluding numeric fields
+                if key not in ['num_participants', 'match_count'] and key in cls.model_fields and value is None:
+                    # Check if the field is expected to be a string (or Optional[str])
+                    annotation = cls.model_fields[key].annotation
+                    if annotation == str or annotation == Optional[str]:
+                        data[key] = ""
+        return data
+
+
 class TravelPackageSearchResponse(BaseModel):
     """Response model for the /search-travel-packages endpoint."""
     packages: List[TravelPackage]
