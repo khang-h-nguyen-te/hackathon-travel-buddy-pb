@@ -42,6 +42,7 @@ class BaseTour(BaseModel):
     accommodation_type: Optional[str] = Field(None, description="Type of accommodation provided")
     activities: Optional[List[str]] = Field(default_factory=list, description="Activities included in the tour")
     transportation: Optional[str] = Field(None, description="Transportation details")
+    image_url: Optional[str] = Field(None, description="URL to an image representing the tour")
 
 class TourSuggestion(BaseModel):
     """Base tour package model"""
@@ -55,6 +56,7 @@ class TourSuggestion(BaseModel):
     accommodation_type: Optional[str] = Field(None, description="Type of accommodation provided")
     activities: Optional[List[str]] = Field(default_factory=list, description="Activities included in the tour")
     transportation: Optional[str] = Field(None, description="Transportation details")
+    image_url: Optional[str] = Field(None, description="URL to an image representing the tour")
 
 class TourSuggestionResponse(BaseModel):
     """Response model for the tour suggestion endpoint."""

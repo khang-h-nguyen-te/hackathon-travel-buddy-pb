@@ -259,29 +259,14 @@ class TourSuggestionService:
                 fallback_suggestion = TourSuggestion(
                     title=f"Tour Package for {location_input}",
                     description=f"A customized tour package for {location_input} and nearby areas.",
-                    total_duration=5,
-                    pricing={
-                        "total_price_per_person": 500.0,
-                        "total_price_group": float(500.0 * num_participants),
-                        "includes": ["Accommodation", "Local transportation"],
-                        "excludes": ["International flights", "Personal expenses"]
-                    },
-                    accommodation=[{
-                        "name": "Standard Hotel",
-                        "type": accommodation_preference,
-                        "description": "Standard accommodation based on your preferences.",
-                        "price_range": budget_range
-                    }],
-                    transportation={
-                        "methods": ["Local transportation"],
-                        "description": "Standard local transportation options."
-                    },
-                    itinerary=[{
-                        "day": 1,
-                        "activities": ["Arrival and check-in", "Welcome dinner"],
-                        "description": "Arrival day with welcome activities."
-                    }],
-                    highlights=["Customized tour based on your preferences"]
+                    duration_days=5,
+                    price=500.0,
+                    location=location_input,
+                    highlights=["Customized tour based on your preferences"],
+                    accommodation_type=accommodation_preference,
+                    activities=["Sightseeing", "Local experiences"],
+                    transportation=None,
+                    image_url=None
                 )
                 tour_response.suggested_tours = [fallback_suggestion]
             
@@ -300,7 +285,8 @@ class TourSuggestionService:
                         highlights=tour.get('highlights', []),
                         accommodation_type=tour.get('accommodation_type', None),
                         activities=tour.get('activities', []),
-                        transportation=tour.get('transportation', None)
+                        transportation=tour.get('transportation', None),
+                        image_url=tour.get('image_url', None)
                     )
                     base_tours_list.append(base_tour)
                 except Exception as e:
