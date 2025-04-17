@@ -1,5 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
+import json
 
 from app.tools.base_tool import BaseTool
 from app.config.env_config import config
@@ -34,7 +35,7 @@ class OrganizationValidationTool(BaseTool):
             return OrganizationValidation(organization_name=None)
 
         try:
-            completion = self.openai_client.beta.chat.completions.parse(
+            completion = self.openai_client.chat.completions.create(
                 model=config.llm_model,
                 messages=[
                     {
