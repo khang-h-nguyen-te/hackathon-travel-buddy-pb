@@ -228,7 +228,8 @@ class TourSuggestionService:
             f"All tours MUST be focused on {location_input} and only include nearby locations (within 1-2 hours travel maximum). " +
             "Include a daily itinerary, pricing breakdown, accommodation options, transportation details, and highlights for each suggestion. " +
             f"DO NOT suggest activities or destinations that are far from {location_input} (more than 2 hours travel). " +
-            "IMPORTANT: Format the description field for each suggested tour in markdown format, using the same styling as shown in the base tours."
+            "IMPORTANT: Format the description field for each suggested tour in markdown format, using the same styling as shown in the base tours. " +
+            "Make sure to include the detailed itinerary in the description field with proper markdown formatting, exactly as it appears in the base tours."
         )
         
         # Call the OpenAI API to generate the tour suggestion with structured output

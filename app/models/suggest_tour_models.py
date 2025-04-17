@@ -28,12 +28,6 @@ class TransportationDetails(BaseModel):
     methods: List[str] = Field(..., description="Transportation methods used")
     description: str = Field(..., description="Description of transportation arrangements")
 
-class ItineraryDay(BaseModel):
-    """Daily itinerary model"""
-    day: int = Field(..., description="Day number")
-    activities: List[str] = Field(..., description="Activities for the day")
-    meals: Optional[List[str]] = Field(default_factory=list, description="Meals included")
-    description: str = Field(..., description="Description of the day's activities")
 
 class BaseTour(BaseModel):
     """Base tour package model"""
@@ -50,15 +44,17 @@ class BaseTour(BaseModel):
     transportation: Optional[str] = Field(None, description="Transportation details")
 
 class TourSuggestion(BaseModel):
-    """Output model for suggested combined tour."""
-    title: str = Field(..., description="Catchy title for the combined tour package")
-    description: str = Field(..., description="Overall description of the combined tour")
-    total_duration: int = Field(..., description="Total duration of the combined tour in days")
-    pricing: PricingDetails = Field(..., description="Pricing breakdown")
-    accommodation: List[AccommodationOption] = Field(..., description="List of accommodation options")
-    transportation: TransportationDetails = Field(..., description="Transportation details")
-    itinerary: List[ItineraryDay] = Field(..., description="Day-by-day itinerary")
-    highlights: List[str] = Field(..., description="Key highlights of the combined tour")
+    """Base tour package model"""
+    title: str = Field(..., description="Title of the tour package")
+    description: str = Field(..., description="Description of the tour package, please include the daily itinerary in markdown format")
+    duration_days: int = Field(..., description="Duration of the tour in days")
+    price: float = Field(..., description="Price of the tour")
+    location: str = Field(..., description="Location of the tour")
+    highlights: List[str] = Field(default_factory=list, description="Highlights of the tour")
+    # Add any other fields that are in your base tour packages
+    accommodation_type: Optional[str] = Field(None, description="Type of accommodation provided")
+    activities: Optional[List[str]] = Field(default_factory=list, description="Activities included in the tour")
+    transportation: Optional[str] = Field(None, description="Transportation details")
 
 class TourSuggestionResponse(BaseModel):
     """Response model for the tour suggestion endpoint."""

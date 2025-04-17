@@ -37,6 +37,7 @@ class OrganizationValidationTool(BaseTool):
         try:
             completion = self.openai_client.chat.completions.create(
                 model=config.llm_model,
+                response_format={"type": "json_object"},
                 messages=[
                     {
                         "role": "system",
@@ -46,17 +47,27 @@ class OrganizationValidationTool(BaseTool):
                         Rules:
                         1. Return ONLY the most similar organization name from the list
                         2. If no good match is found, return null
-                        3. Do not add any explanation or additional text"""
+                        3. Do not add any explanation or additional text
+                        
+                        RETURN AS JSON in the format:
+                        {{"organization_name": "matched_org_name_or_null"}}
+                        """
                     },
                     {
                         "role": "user",
                         "content": f"Find the matching organization for: {organization_input}"
                     }
-                ],
-                response_format=OrganizationValidation
+                ]
             )
 
-            return completion.choices[0].message.parsed
+            # Extract and parse the JSON response
+            response_content = completion.choices[0].message.content
+            try:
+                response_json = json.loads(response_content)
+                return OrganizationValidation(organization_name=response_json.get("organization_name"))
+            except (json.JSONDecodeError, AttributeError):
+                # Fallback in case of json parsing errors
+                return OrganizationValidation(organization_name=None)
 
         except Exception as e:
             return OrganizationValidation(organization_name=None) 
